@@ -124,6 +124,36 @@ export const authenticateUser = async (username, password) => {
     }
 };
 
+// Function to extract username from the ID Token
+const getUsernameFromToken = (idToken) => {
+    try {
+        // Decode the ID Token
+        const decodedToken = jwtDecode(idToken);
+
+        // Access the 'cognito:username' claim
+        const username = decodedToken['cognito:username'];
+        
+        // Store username in localStorage
+        localStorage.setItem('username', username);
+        console.log('Username stored:', username);
+        
+        return username;
+    } catch (error) {
+        console.error('Error decoding token:', error);
+        return null;
+    }
+};
+
+// Example usage
+const idToken = localStorage.getItem('idToken'); // Retrieve the ID Token from localStorage
+const username = getUsernameFromToken(idToken);
+
+if (username) {
+    console.log('Username:', username);
+} else {
+    console.log('No username found');
+}
+
 
 export const getUserRole = (idToken) => {
     return new Promise((resolve, reject) => {

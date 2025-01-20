@@ -111,16 +111,52 @@ function AdminDashboard() {
 
   const handleUpdateTask = async () => {
     try {
-      const response = await fetch(`https://hrw00hg1tf.execute-api.eu-west-1.amazonaws.com/dev/tasks/${isEditing}`, {
+      const token = localStorage.getItem('accessToken');
+      const role = localStorage.getItem('userRole');  // Assuming role is stored in localStorage after login
+      console.log(`Changing status for task to ${role}`);
+      if (!token) {
+        setError('Access token not found. Please log in again.');
+        return;
+      }
+  
+      // Construct the request body
+      const body = {
+        taskID: isEditing,  // Add taskID to the body for the update request
+        role: role, 
+      };
+  
+      // Admins can update all task fields
+      if (role === 'admin') {
+        body.taskName = newTask.taskName;
+        body.description = newTask.description;
+        body.assigneeID = newTask.assigneeID;
+        body.deadline = newTask.deadline;
+        body.priority = newTask.priority;
+        body.status = newTask.status;
+      }
+  
+      // Make the PUT request to the API
+      const response = await fetch('https://hrw00hg1tf.execute-api.eu-west-1.amazonaws.com/dev/tasks', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        mode: "cors",
-        credentials: 'same-origin',
-        body: JSON.stringify(newTask),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // Authorization header with the token
+        },
+        body: JSON.stringify(body),  // Pass the taskID and all other fields in the body
       });
-
-      if (!response.ok) throw new Error('Failed to update task');
-      setTasks(tasks.map(task => task.taskID === isEditing ? { ...task, ...newTask } : task));
+  
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+  
+      // Update the task locally after a successful update
+      setTasks(tasks.map(task => 
+        task.taskID === isEditing 
+        ? { ...task, ...newTask } // Update only the task that was edited
+        : task // Leave other tasks unchanged
+      ));
+  
+      // Reset the form and close the modal
       setIsEditing(null);
       setNewTask({
         taskName: '',
@@ -136,25 +172,8 @@ function AdminDashboard() {
     }
   };
 
-  const handleEditTask = (taskID) => {
-    const task = tasks.find(t => t.taskID === taskID);
-    setIsEditing(taskID);
-    setNewTask({
-      taskName: task.taskName,
-      description: task.description,
-      assigneeID: task.assigneeID,
-      deadline: task.deadline,
-      priority: task.priority,
-      status: task.status,
-    });
-    setShowModal(true); // Open modal for editing
-  };
-
-  // Handle delete task
   const handleDeleteTask = async (taskID) => {
-    
     try {
-      
       const response = await fetch(`https://hrw00hg1tf.execute-api.eu-west-1.amazonaws.com/dev/tasks/${taskID}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -164,6 +183,23 @@ function AdminDashboard() {
       setTasks(tasks.filter(task => task.taskID !== taskID)); // Remove task from the state
     } catch (error) {
       setError('Error deleting task: ' + error.message);
+    }
+  };
+
+  // New function to handle editing tasks
+  const handleEditTask = (taskID) => {
+    const taskToEdit = tasks.find(task => task.taskID === taskID);
+    if (taskToEdit) {
+      setIsEditing(taskID);
+      setNewTask({
+        taskName: taskToEdit.taskName,
+        description: taskToEdit.description,
+        assigneeID: taskToEdit.assigneeID,
+        deadline: taskToEdit.deadline,
+        priority: taskToEdit.priority,
+        status: taskToEdit.status,
+      });
+      setShowModal(true); // Open the modal when editing a task
     }
   };
 
@@ -187,32 +223,31 @@ function AdminDashboard() {
           </div>
 
           <div className="row">
-          {tasks.map((task, index) => (
-  <div className="col-md-4" key={task.taskID || index}>
-    <div className="card mb-4 shadow-sm">
-      <div className="card-body">
-        <h5 className="card-title">Task Name: {task.taskName}</h5>
-        <p className="card-text">Task Description: {task.description}</p>
-        <p className="card-text">Priority: {task.priority}</p>
-        <p className="card-text">Status: {task.status}</p>
-        <p className="card-text">
-          <small className="text-muted">Task ID: {task.taskID}</small>
-        </p>
-        <p className="card-text">
-          <small className="text-muted">Assigned to: {task.assigneeID}</small>
-        </p>
-        <p className="card-text">
-          <small className="text-muted">Deadline: {task.deadline}</small>
-        </p>
-        <div className="d-flex justify-content-between">
-          <button className="btn btn-warning btn-sm" onClick={() => handleEditTask(task.taskID)}>Edit</button>
-          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTask(task.taskID)}>Delete</button>
-        </div>
-      </div>
-    </div>
-  </div>
-))}
-
+            {tasks.map((task, index) => (
+              <div className="col-md-4" key={task.taskID || index}>
+                <div className="card mb-4 shadow-sm">
+                  <div className="card-body">
+                    <h5 className="card-title">Task Name: {task.taskName}</h5>
+                    <p className="card-text">Task Description: {task.description}</p>
+                    <p className="card-text">Priority: {task.priority}</p>
+                    <p className="card-text">Status: {task.status}</p>
+                    <p className="card-text">
+                      <small className="text-muted">Task ID: {task.taskID}</small>
+                    </p>
+                    <p className="card-text">
+                      <small className="text-muted">Assigned to: {task.assigneeID}</small>
+                    </p>
+                    <p className="card-text">
+                      <small className="text-muted">Deadline: {task.deadline}</small>
+                    </p>
+                    <div className="d-flex justify-content-between">
+                      <button className="btn btn-warning btn-sm" onClick={() => handleEditTask(task.taskID)}>Edit</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDeleteTask(task.taskID)}>Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {showModal && (

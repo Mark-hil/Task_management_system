@@ -27,8 +27,11 @@ function Login() {
         // Get tokens from response body
         const result =  response.body;
         const tokens =  result.tokens;
-
+        const userID = result.userID;
+        console.log("user id", userID)
+        console.log("result: ", result.role);
         console.log("Role: ", result.role);
+        // console.log("API Response:", result);
 
 
         if (!tokens || !tokens.AccessToken || !tokens.IdToken) {
@@ -42,6 +45,8 @@ function Login() {
 
         localStorage.setItem('accessToken', AccessToken);
         localStorage.setItem('idToken', IdToken);
+        localStorage.setItem('userRole', role);
+        localStorage.setItem('userId', userID);
         
 
         if (role === 'admin') {
